@@ -1,0 +1,15 @@
+
+let main: () -> void:
+  let a := 1
+  let b :=
+    let c := 2
+    c
+  let c := foo()
+
+  print("hello, world!")
+
+
+let foo: () -> i32:
+  return 51
+
+

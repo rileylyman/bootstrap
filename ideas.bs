@@ -1,0 +1,24 @@
+
+let main: () -> void:
+  let a: i32 = 1
+  a = 2
+
+  let a_ptr := a.&
+
+  let a_arr: [4: i32] = [1, 2, 3, 4]
+
+  let a_slice: [*: i32] = a_arr[1:2]
+
+  let compound: [_: u8] =
+    let s: [_: u8] = "hello"
+    print("forming s")
+    s
+
+  print("Hello, world!")
+
+  let b := foo()
+
+
+let foo: () -> i32:
+  print("inside foo")
+  return 55
