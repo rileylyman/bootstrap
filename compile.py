@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 import enum
+import inspect
 from typing import Any, List, NoReturn, Optional, Self, Tuple
 
 
@@ -12,7 +13,7 @@ class Span:
     col_start: int
     col_end: int
 
-    def show(self, source: str) -> str:
+    def display(self, source: str) -> str:
         lines = source.splitlines()[self.line_start - 1 : self.line_end]
         if len(lines) == 1:
             s = lines[0] + "\n"
@@ -52,8 +53,12 @@ class Token:
         self.ttype = ttype
         self.span = span
 
-    def show(self, source: str):
-        return f"{self.ttype.name}:\n{self.span.show(source)}"
+    def display(self, source: str):
+        return f"{self.ttype.name}:\n{self.span.display(source)}"
+
+    def __str__(self):
+        value_str = "" if not self.value else f"({str(self.value)})"
+        return f"{self.ttype.name}{value_str}"
 
 
 class Lexer:
@@ -249,7 +254,29 @@ class Lexer:
         return ret
 
 
-class Statement:
+class Node:
+    def show(self, source: str, indent: int = 0):
+        print(indent * " " + self.__class__.__name__ + ":")
+        members = inspect.getmembers(self, lambda a: not inspect.isroutine(a))
+        for key, val in members:
+            if key.startswith("__"):
+                continue
+            print((indent + 2) * " " + key + ":")
+
+            def show(v: Any, source: str, indent: int):
+                if dict(inspect.getmembers(v)).get("show"):
+                    v.show(source, indent)
+                else:
+                    print(indent * " " + str(v))
+
+            if isinstance(val, list):
+                for v in val:
+                    show(v, source, indent + 4)
+            else:
+                show(val, source, indent + 4)
+
+
+class Statement(Node):
     @classmethod
     def parse(cls, tokens: List[Token], source: str) -> Tuple[Self, List[Token]]:
         match tokens[0].ttype:
@@ -270,7 +297,7 @@ class Statement:
         return False
 
 
-class TypeAnnotation:
+class TypeAnnotation(Node):
     @classmethod
     def parse(cls, tokens: List[Token], source: str) -> Tuple[Self, List[Token]]:
         match tokens[0].ttype:
@@ -291,7 +318,7 @@ class TypeNameAnnotation(TypeAnnotation):
 
 
 @dataclasses.dataclass
-class ParamList:
+class ParamList(Node):
     params: List[Parameter]
 
     @classmethod
@@ -323,7 +350,7 @@ class FnTypeAnnotation(TypeAnnotation):
 
 
 @dataclasses.dataclass
-class Parameter:
+class Parameter(Node):
     name: Token
     colon: Token
     annotation: TypeAnnotation
@@ -345,7 +372,7 @@ class Parameter:
 
 
 @dataclasses.dataclass
-class Block:
+class Block(Node):
     indent: Token
     entries: List[Expression | Statement]
     block_value: Optional[Expression]
@@ -422,7 +449,7 @@ class AssignStmt(Statement):
         return cls(name, equals, expr_or_block), tokens
 
 
-class Expression:
+class Expression(Node):
     @classmethod
     def parse(cls, tokens: List[Token], source: str) -> Tuple[Self, List[Token]]:
         match tokens[0].ttype:
@@ -435,7 +462,7 @@ class Expression:
                     return NameExpr.parse(tokens, source)
                 else:
                     return CallExpr.parse(tokens, source)
-        error(f"{tokens[0].show(source)}\nunexpected token")
+        error(f"{tokens[0].display(source)}\nunexpected token")
 
 
 @dataclasses.dataclass
@@ -469,7 +496,7 @@ class StringLitExpr(Expression):
 
 
 @dataclasses.dataclass
-class Argument:
+class Argument(Node):
     expr: Expression
     comma: Optional[Token]
 
@@ -487,7 +514,7 @@ class Argument:
 
 
 @dataclasses.dataclass
-class ArgList:
+class ArgList(Node):
     args: List[Argument]
 
     @classmethod
@@ -537,7 +564,7 @@ def expect(
             return first, tokens[1:]
 
     msg = msg or f"expected {expected}"
-    error(f"{first.show(source)}\n{msg}")
+    error(f"{first.display(source)}\n{msg}")
 
 
 class Parser:
@@ -564,7 +591,7 @@ def main():
     stmts = parser.parse()
 
     for s in stmts:
-        print(s)
+        s.show(source)
 
 
 if __name__ == "__main__":

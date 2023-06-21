@@ -1,4 +1,39 @@
 
+let MessagePacket: struct:
+  id: u32
+  data: [256: u8]
+
+let Message: struct:
+  id: u32
+  from: [*: u8]
+  
+  cases:
+    hello:
+      #empty
+    data_req:
+      addr: u32
+      n_bytes: u32
+
+impl Message:
+  make_data_req: (req: [*: u8]) -> Self:
+    let self := Self.data_req._
+    self.addr = req.ptr
+    self.n_bytes = req.count
+    self
+
+  fulfill_data_req: (self: *Self) -> [*: u8]:
+    
+    
+
+let bar: () -> void:
+  let msg :=
+    let msg: Message = _
+    msg.id = 123
+    msg.from = "some_addr"
+    msg
+
+  
+
 let main: () -> void:
   let a: i32 = 1
   a = 2
